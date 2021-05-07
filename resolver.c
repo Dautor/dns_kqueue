@@ -57,18 +57,20 @@ dns_result(struct dns *dns)
 	return NULL;
 }
 
-void
+s32
 dns_free(struct dns *dns, struct dns_result *result)
 {
 	(void)dns;
 	if(result != NULL) free(result);
+	return 0;
 }
 
-void
+s32
 dns_lookup(struct dns *dns, char const *name)
 {
 	struct kevent change[1];
 	EV_SET(change+0, 0x0123456789, EVFILT_USER, 0, NOTE_FFNOP|NOTE_TRIGGER, 0, NULL);
 	if(kevent(dns->fd, change, ArrayCount(change), NULL, 0, NULL) == -1) perr("kevent");
 	(void)name;
+	return 0;
 }
