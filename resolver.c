@@ -1,66 +1,74 @@
 
 #include "common.h"
+#include "resolver.h"
 
 #include <sys/event.h>
 #include <unistd.h>
 
-s32
-ResolverCreate(void)
+struct dns
 {
-	// IMPORTANT(dautor): How are we supposed to track resolver-specific data?
-	// We could pass a pointer to a struct that we use and require user to pass it as udata in kevent,
-	// but that is not good enough... the user might want to store their own data... They could chain
-	// us in their struct but that feels kinda silly... We should probably remain opaque.
-	s32 FD = kqueue();
-	if(FD == -1) return -1;
-	struct kevent Change[1];
-	EV_SET(Change+0, 0x0123456789, EVFILT_USER, EV_ADD|EV_CLEAR, 0, 0, NULL);
-	if(kevent(FD, Change, ArrayCount(Change), NULL, 0, NULL) == -1) perr("kevent");
-	return FD;
+	s32 fd;
+	char name[32];
+};
+
+struct dns_resolver
+dns_create(void)
+{
+	struct dns_resolver result;
+	result.fd = kqueue();
+	if(result.fd == -1) return (struct dns_resolver){.fd=-1};
+	struct kevent change[1];
+	EV_SET(change+0, 0x0123456789, EVFILT_USER, EV_ADD|EV_CLEAR, 0, 0, NULL);
+	if(kevent(result.fd, change, ArrayCount(change), NULL, 0, NULL) == -1)
+	{
+		perr("kevent");
+	}
+	result.data = (struct dns *)malloc(sizeof(struct dns));
+	result.data->fd = result.fd;
+	return result;
 }
 
 s32
-ResolverDestroy(s32 FD)
+dns_destroy(struct dns *dns)
 {
-	return close(FD);
+	return close(dns->fd);
 }
 
 struct dns_result *
-Resolve(s32 FD)
+dns_result(struct dns *dns)
 {
-	s32 EventCount;
-	struct kevent Event[4];
-	EventCount = kevent(FD, NULL, 0, Event, ArrayCount(Event), NULL);
-	if(EventCount == -1) perr("kevent");
-	for(s32 i = 0; i < EventCount; ++i)
+	struct kevent event[4];
+	s32 event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
+	if(event_count == -1) perr("kevent");
+	for(s32 i = 0; i < event_count; ++i)
 	{
-		struct kevent *E = Event+i;
-		switch(E->filter)
+		struct kevent *e = event+i;
+		switch(e->filter)
 		{
-            case EVFILT_USER:
-            {
-                if(E->ident == 0x0123456789)
+			case EVFILT_USER:
+			{
+				if(e->ident == 0x0123456789)
 				{
 					printf("yay\n");
 				}
-			};
+			} break;
 		}
 	}
-    return NULL;
+	return NULL;
 }
 
 void
-ResolverFree(struct dns_result *Result)
+dns_free(struct dns *dns, struct dns_result *result)
 {
-	if(Result != NULL) free(Result);
+	(void)dns;
+	if(result != NULL) free(result);
 }
 
 void
-ResolverLookup(s32 FD, char const *Name)
+dns_lookup(struct dns *dns, char const *name)
 {
-	struct kevent Change[1];
-	EV_SET(Change+0, 0x0123456789, EVFILT_USER, 0, NOTE_FFNOP|NOTE_TRIGGER, 0, NULL);
-	if(kevent(FD, Change, ArrayCount(Change), NULL, 0, NULL) == -1) perr("kevent");
-	(void)Name;
+	struct kevent change[1];
+	EV_SET(change+0, 0x0123456789, EVFILT_USER, 0, NOTE_FFNOP|NOTE_TRIGGER, 0, NULL);
+	if(kevent(dns->fd, change, ArrayCount(change), NULL, 0, NULL) == -1) perr("kevent");
+	(void)name;
 }
-

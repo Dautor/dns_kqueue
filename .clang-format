@@ -1,0 +1,8 @@
+BasedOnStyle: webkit
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+BreakBeforeBraces: Allman
+BraceWrapping:
+  BeforeElse: false
+SpaceBeforeParens: false

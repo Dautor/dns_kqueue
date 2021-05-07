@@ -2,13 +2,21 @@
 
 #include "common.h"
 
+struct dns;
+
+struct dns_resolver
+{
+	s32 fd;
+	struct dns *data;
+};
+
 struct dns_result
 {
 
 };
 
-s32 ResolverCreate(void);
-s32 ResolverDestroy(s32 FD);
-struct dns_result *Resolve(s32 FD);
-void ResolverFree(struct dns_result *Result);
-void ResolverLookup(s32 FD, char const *Name);
+struct dns_resolver dns_create (void);
+s32                 dns_destroy(struct dns *);
+struct dns_result  *dns_result (struct dns *);
+void                dns_free   (struct dns *, struct dns_result *Result);
+void                dns_lookup (struct dns *, char const *Name);

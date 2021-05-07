@@ -9,60 +9,60 @@
 s32
 main(void)
 {
-	s32 ResolverFD = ResolverCreate();
-	s32 Q          = kqueue();
+	struct dns_resolver resolver = dns_create();
+	s32 queue = kqueue();
 	{
-		struct kevent Change[2];
-		EV_SET(Change+0, STDIN_FILENO, EVFILT_READ, EV_ADD, 0, 0, NULL);
-		EV_SET(Change+1, ResolverFD,   EVFILT_READ, EV_ADD, 0, 0, NULL);
-		if(kevent(Q, Change, ArrayCount(Change), NULL, 0, NULL) == -1)
+		struct kevent change[2];
+		EV_SET(change+0, STDIN_FILENO, EVFILT_READ, EV_ADD, 0, 0, NULL);
+		EV_SET(change+1, resolver.fd,  EVFILT_READ, EV_ADD, 0, 0, resolver.data);
+		if(kevent(queue, change, ArrayCount(change), NULL, 0, NULL) == -1)
 		{
 			perr("kevent");
 		}
 	}
 
-	bool Running = true;
-	while(Running)
+	bool running = true;
+	while(running)
 	{
-		s32 EventCount;
-		struct kevent Event[32];
-		EventCount = kevent(Q, NULL, 0, Event, ArrayCount(Event), NULL);
-		if(EventCount == -1) perr("kevent");
-		for(s32 i = 0; i < EventCount; ++i)
+		s32 event_count;
+		struct kevent event[32];
+		event_count = kevent(queue, NULL, 0, event, ArrayCount(event), NULL);
+		if(event_count == -1) perr("kevent");
+		for(s32 i = 0; i < event_count; ++i)
 		{
-			struct kevent *E = Event+i;
-			switch(E->filter)
+			struct kevent *e = event+i;
+			switch(e->filter)
 			{
 				case EVFILT_READ:
 				{
-					s32 FD = E->ident;
-					if(FD == STDIN_FILENO)
+					s32 fd = e->ident;
+					if(fd == STDIN_FILENO)
 					{
-						char Buffer[BUFSIZ+1];
-						ssize_t Len = read(STDIN_FILENO, Buffer, BUFSIZ);
-						if(Len == -1) perr("read");
-						if(Buffer[Len-1] == '\n') --Len;
-						Buffer[Len] = 0;
-						if(strcmp(Buffer, "quit") == 0)
+						char buffer[BUFSIZ+1];
+						ssize_t len = read(STDIN_FILENO, buffer, BUFSIZ);
+						if(len == -1) perr("read");
+						if(buffer[len-1] == '\n') --len;
+						buffer[len] = 0;
+						if(strcmp(buffer, "quit") == 0)
 						{
-							Running = false;
+							running = false;
 							break;
 						}
-						write(STDIN_FILENO, Buffer, Len);
+						write(STDIN_FILENO, buffer, len);
 						write(STDIN_FILENO, "\n", 1);
 
-						ResolverLookup(ResolverFD, Buffer);
+						dns_lookup(resolver.data, buffer);
 
-					} else if(FD == ResolverFD)
+					} else if(fd == resolver.fd)
 					{
-						struct dns_result *Result = Resolve(FD);
-						ResolverFree(Result);
+						struct dns_result *result = dns_result(e->udata);
+						dns_free(resolver.data, result);
 					}
-				};
+				} break;
 
 			}
 		}
 	}
-	ResolverDestroy(ResolverFD);
+	dns_destroy(resolver.data);
 	return 0;
 }
