@@ -1,8 +1,41 @@
-BasedOnStyle: webkit
+
+
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: true
-BreakBeforeBraces: Allman
+
+BreakBeforeBraces: Custom
 BraceWrapping:
-  BeforeElse: false
-SpaceBeforeParens: false
+ AfterEnum:          true
+ AfterStruct:        true
+ AfterUnion:         true
+ AfterFunction:      true
+ SplitEmptyFunction: true
+ BeforeElse:         false
+ AfterControlStatement: Always
+ AfterCaseLabel:     true
+
+PointerAlignment: Right
+
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens:              false
+SpaceAfterLogicalNot:           false
+SpaceBeforeSquareBrackets:      false
+SpaceInEmptyBlock:              false
+SpaceInEmptyParentheses:        false
+SpacesInCStyleCastParentheses:  false
+SpacesInConditionalStatement:   false
+SpacesInContainerLiterals:      false
+SpacesInParentheses:            false
+SpacesInSquareBrackets:         false
+
+ColumnLimit: 0
+IndentWidth: 4
+UseTab: Always
+AllowShortIfStatementsOnASingleLine: false
+
+AlwaysBreakAfterDefinitionReturnType: true
+
+SortIncludes: true
+
+IndentCaseLabels: true
