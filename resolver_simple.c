@@ -13,13 +13,13 @@ struct dns
 {
 	s32 fd;
 	struct addrinfo *result;
-	char name[32];
 };
 
 struct dns_resolver
-dns_create(void)
+dns_create(void *unused)
 {
-	struct dns_resolver result;
+	(void)unused;
+	struct dns_resolver result = {};
 	result.fd = kqueue();
 	if(result.fd == -1) return (struct dns_resolver){.fd=-1};
 	struct kevent change[1];

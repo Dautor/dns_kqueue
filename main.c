@@ -14,7 +14,7 @@
 s32
 main(void)
 {
-	struct dns_resolver resolver = dns_create();
+	struct dns_resolver resolver = dns_create(NULL);
 	s32 queue = kqueue();
 	{
 		struct kevent change[2];
