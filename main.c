@@ -5,6 +5,11 @@
 #include <sys/event.h>
 #include <unistd.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 s32
 main(void)
@@ -55,7 +60,11 @@ main(void)
 
 					} else if(fd == resolver.fd)
 					{
-						struct dns_result *result = dns_result(e->udata);
+						char name_buffer[40];
+						struct addrinfo *result = dns_result(e->udata);
+						struct in_addr  *addr   = &((struct sockaddr_in *)result->ai_addr)->sin_addr;
+						inet_ntop(result->ai_family, addr, name_buffer, sizeof(name_buffer));
+						printf("%s\n", name_buffer);
 						dns_free(resolver.data, result);
 					}
 				} break;
