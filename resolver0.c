@@ -4,14 +4,15 @@
 
 #include <err.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <sys/event.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-struct dns
+struct dns_ctx
 {
-    int              fd;
+    s32              fd;
     struct addrinfo *result;
 };
 
@@ -29,25 +30,26 @@ dns_create(void *unused)
     {
         perr("kevent");
     }
-    result.data     = (struct dns *)malloc(sizeof(struct dns));
-    result.data->fd = result.fd;
+    result.context     = (struct dns_ctx *)malloc(sizeof(struct dns_ctx));
+    result.context->fd = result.fd;
     return result;
 }
 
-int
-dns_destroy(struct dns *dns)
+s32
+dns_destroy(struct dns_ctx *dns)
 {
     return close(dns->fd);
 }
 
-struct addrinfo *
-dns_result(struct dns *dns)
+struct in_addr *
+dns_result(struct dns_ctx *dns, u64 flags)
 {
+    (void)flags;
     struct kevent event[4];
-    int           event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
+    s32           event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
     if(event_count == -1)
         perr("kevent");
-    for(int i = 0; i < event_count; ++i)
+    for(s32 i = 0; i < event_count; ++i)
     {
         struct kevent *e = event + i;
         switch(e->filter)
@@ -56,7 +58,7 @@ dns_result(struct dns *dns)
             {
                 if(e->ident == 0x0123456789)
                 {
-                    return dns->result;
+                    return &((struct sockaddr_in *)dns->result->ai_addr)->sin_addr;
                 }
             }
             break;
@@ -65,25 +67,32 @@ dns_result(struct dns *dns)
     return NULL;
 }
 
-int
-dns_free(struct dns *dns, struct addrinfo *result)
+s32
+dns_free(struct dns_ctx *dns, struct in_addr *result)
 {
-    (void)dns;
-    if(result)
+    if(result != &((struct sockaddr_in *)dns->result->ai_addr)->sin_addr)
     {
-        freeaddrinfo(result);
+        // indicate result is not vaild via errno
+        return -1;
+    }
+    if(dns->result)
+    {
+        freeaddrinfo(dns->result);
+        dns->result = NULL;
     }
     return 0;
 }
 
-int
-dns_lookup(struct dns *dns, char const *name)
+s32
+dns_lookup(struct dns_ctx *dns, u64 flags, char const *name, enum record_type type)
 {
+    (void)flags;
+    (void)type;
     {
         struct addrinfo hints = {};
         hints.ai_family       = AF_UNSPEC;
         hints.ai_socktype     = SOCK_STREAM;
-        int error             = getaddrinfo(name, NULL, &hints, &dns->result);
+        s32 error             = getaddrinfo(name, NULL, &hints, &dns->result);
         if(error)
         {
             errx(1, "%s", gai_strerror(error));

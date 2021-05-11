@@ -19,7 +19,7 @@ main(void)
     {
         struct kevent change[2];
         EV_SET(change + 0, STDIN_FILENO, EVFILT_READ, EV_ADD, 0, 0, NULL);
-        EV_SET(change + 1, resolver.fd, EVFILT_READ, EV_ADD, 0, 0, resolver.pCtx);
+        EV_SET(change + 1, resolver.fd, EVFILT_READ, EV_ADD, 0, 0, resolver.context);
         if(kevent(queue, change, ArrayCount(change), NULL, 0, NULL) == -1)
         {
             perr("kevent");
@@ -59,25 +59,24 @@ main(void)
                         write(STDIN_FILENO, buffer, len);
                         write(STDIN_FILENO, "\n", 1);
 
-                        dns_lookup(resolver.pCtx, buffer, DNS_RECORD_A, 0);
+                        dns_lookup(resolver.context, 0, buffer, 0);
 
                     } else if(fd == resolver.fd)
                     {
-                        struct in_addr *result = dns_result(e->udata);
+                        struct in_addr *result = dns_result(e->udata, 0);
                         if(!result)
                         {
                             fprintf(stderr, "dns_result returned NULL\n");
                             continue;
                         }
-
                         printf("%s\n", inet_ntoa(*result));
-                        dns_free(resolver.pCtx, result);
+                        dns_free(resolver.context, result);
                     }
                 }
                 break;
             }
         }
     }
-    dns_destroy(resolver.pCtx);
+    dns_destroy(resolver.context);
     return 0;
 }

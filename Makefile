@@ -1,8 +1,8 @@
 CC = clang
 CCFLAGS := -Wall -Wextra -Werror
-INCLUDEDIR = ./
+INCLUDEDIR =
 OUTPUT = resolv
-SOURCES = main.c resolver.c
+SOURCES = main.c resolver1.c
 OBJECTS=${SOURCES:.c=.o}
 
 all : ${OUTPUT}

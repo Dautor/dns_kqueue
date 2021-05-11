@@ -1,6 +1,6 @@
 
-#include "resolver.h"
 #include "common.h"
+#include "resolver.h"
 
 #include <err.h>
 #include <netdb.h>
@@ -14,22 +14,25 @@
 #include <resolv.h>
 #include <string.h>
 
+#define RES_IDENT 0x123456789
+
 // TODO: LUT for enum Record to native record type format mapping
 
 struct dns_ctx
 {
-    int                fd;
+    s32                fd;
     struct __res_state state;
 
-    uint8_t query_buf[PACKETSZ];
-    uint8_t ans_buf[PACKETSZ];
-    size_t  query_buf_cur_len;
-    size_t  ans_buf_cur_len;
+    u8     query_buf[PACKETSZ];
+    u8     ans_buf[PACKETSZ];
+    size_t query_buf_cur_len;
+    size_t ans_buf_cur_len;
 };
 
 struct dns_resolver
-dns_create(struct sockaddr_in *ns)
+dns_create(void *ns_)
 {
+    struct sockaddr_in *ns     = ns_;
     struct dns_resolver result = {};
     result.fd                  = kqueue();
     if(result.fd == -1)
@@ -40,25 +43,25 @@ dns_create(struct sockaddr_in *ns)
     {
         perr("kevent");
     }
-    result.pCtx = (struct dns_ctx *)malloc(sizeof(struct dns_ctx));
-    if(!result.pCtx)
+    result.context = (struct dns_ctx *)malloc(sizeof(struct dns_ctx));
+    if(!result.context)
     {
         perr("malloc");
         return (struct dns_resolver){.fd = -1};
     }
-    result.pCtx->fd = result.fd;
+    result.context->fd = result.fd;
 
-    res_ninit(&result.pCtx->state);
+    res_ninit(&result.context->state);
     if(ns)
     {
-        result.pCtx->state.nsaddr_list[0] = *ns;
-        result.pCtx->state.nscount        = 1;
+        result.context->state.nsaddr_list[0] = *ns;
+        result.context->state.nscount        = 1;
     }
 
     return result;
 }
 
-int
+s32
 dns_destroy(struct dns_ctx *dns)
 {
     res_nclose(&dns->state);
@@ -66,14 +69,14 @@ dns_destroy(struct dns_ctx *dns)
 }
 
 struct in_addr *
-dns_result(struct dns_ctx *dns)
+dns_result(struct dns_ctx *dns, u64 flags)
 {
-
+    (void)flags;
     struct kevent event[4];
-    int           event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
+    s32           event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
     if(event_count == -1)
         perr("kevent");
-    for(int i = 0; i < event_count; ++i)
+    for(s32 i = 0; i < event_count; ++i)
     {
         struct kevent *e = event + i;
         switch(e->filter)
@@ -120,7 +123,7 @@ dns_result(struct dns_ctx *dns)
                         return NULL;
                     }
 
-                    const uint8_t *data = ns_rr_rdata(rr);
+                    const u8 *data = ns_rr_rdata(rr);
                     memcpy(&result->s_addr, data, sizeof(result->s_addr));
 
                     return result;
@@ -132,7 +135,7 @@ dns_result(struct dns_ctx *dns)
     return NULL;
 }
 
-int
+s32
 dns_free(struct dns_ctx *dns, struct in_addr *result)
 {
     (void)dns;
@@ -143,12 +146,11 @@ dns_free(struct dns_ctx *dns, struct in_addr *result)
     return 0;
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-int
-dns_lookup(struct dns_ctx *dns, char const *dname, enum Record type, unsigned int flags)
+s32
+dns_lookup(struct dns_ctx *dns, u64 flags, char const *dname, enum record_type type)
 {
-    struct kevent change[1];
+    (void)flags;
+    (void)type;
 
     // TODO: implement thread pool
     // TODO: check for DNS_NONBLOCK flag
@@ -173,8 +175,8 @@ dns_lookup(struct dns_ctx *dns, char const *dname, enum Record type, unsigned in
 
     dns->ans_buf_cur_len = err;
 
+    struct kevent change[1];
     EV_SET(change + 0, RES_IDENT, EVFILT_USER, 0, NOTE_FFNOP | NOTE_TRIGGER, 0, NULL);
-
     if(kevent(dns->fd, change, ArrayCount(change), NULL, 0, NULL) == -1)
     {
         perr("kevent");
@@ -184,4 +186,3 @@ dns_lookup(struct dns_ctx *dns, char const *dname, enum Record type, unsigned in
 
     return 0;
 }
-#pragma clang diagnostic pop

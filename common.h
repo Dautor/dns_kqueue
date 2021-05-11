@@ -17,7 +17,5 @@ typedef double	 f64;
 #define ArrayCount(x) (sizeof(x) / sizeof(*x))
 #define perr(x)	      (perror(x), exit(1))
 
-#define RES_IDENT 0x0123456789
-
 #include <stdio.h>
 #include <stdlib.h>
