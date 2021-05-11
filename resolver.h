@@ -2,17 +2,32 @@
 
 #include "common.h"
 
-struct dns;
+#define RECORD_ENUM \
+    X(DNS_RECORD_A)
 
-struct dns_resolver
+#define X(field) field,
+
+enum Record
 {
-	s32         fd;
-	struct dns *data;
-	void       *custom_resolver_result;
+    RECORD_ENUM
 };
 
-struct dns_resolver dns_create (void *resolver_specific_data);
-s32                 dns_destroy(struct dns *);
-s32                 dns_lookup (struct dns *, char const *name);
-struct addrinfo    *dns_result (struct dns *);
-s32                 dns_free   (struct dns *, struct addrinfo *result);
+#undef X
+
+#define DNS_FLAG_NONBLOCK 1
+
+struct dns_ctx;
+struct dns_resolver
+{
+    s32             fd;
+    struct dns_ctx *pCtx;
+    void *          custom_resolver_result;
+};
+
+struct sockaddr_in;
+
+struct dns_resolver dns_create(struct sockaddr_in *ns);
+s32                 dns_destroy(struct dns_ctx *);
+s32                 dns_lookup(struct dns_ctx *, char const *name, enum Record type, unsigned int flags);
+struct in_addr *    dns_result(struct dns_ctx *);
+s32                 dns_free(struct dns_ctx *, struct in_addr *result);

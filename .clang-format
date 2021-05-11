@@ -1,5 +1,4 @@
 
-
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: true
@@ -39,3 +38,4 @@ AlwaysBreakAfterDefinitionReturnType: true
 SortIncludes: true
 
 IndentCaseLabels: true
+UseTab: Never
