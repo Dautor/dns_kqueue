@@ -11,7 +11,7 @@
 
 struct dns
 {
-    int              fd;
+    s32              fd;
     struct addrinfo *result;
 };
 
@@ -34,7 +34,7 @@ dns_create(void *unused)
     return result;
 }
 
-int
+s32
 dns_destroy(struct dns *dns)
 {
     return close(dns->fd);
@@ -44,10 +44,10 @@ struct addrinfo *
 dns_result(struct dns *dns)
 {
     struct kevent event[4];
-    int           event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
+    s32           event_count = kevent(dns->fd, NULL, 0, event, ArrayCount(event), NULL);
     if(event_count == -1)
         perr("kevent");
-    for(int i = 0; i < event_count; ++i)
+    for(s32 i = 0; i < event_count; ++i)
     {
         struct kevent *e = event + i;
         switch(e->filter)
@@ -65,7 +65,7 @@ dns_result(struct dns *dns)
     return NULL;
 }
 
-int
+s32
 dns_free(struct dns *dns, struct addrinfo *result)
 {
     (void)dns;
@@ -76,14 +76,14 @@ dns_free(struct dns *dns, struct addrinfo *result)
     return 0;
 }
 
-int
+s32
 dns_lookup(struct dns *dns, char const *name)
 {
     {
         struct addrinfo hints = {};
         hints.ai_family       = AF_UNSPEC;
         hints.ai_socktype     = SOCK_STREAM;
-        int error             = getaddrinfo(name, NULL, &hints, &dns->result);
+        s32 error             = getaddrinfo(name, NULL, &hints, &dns->result);
         if(error)
         {
             errx(1, "%s", gai_strerror(error));
